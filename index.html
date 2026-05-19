@@ -34,9 +34,35 @@
 
 <!-- Modal de edición -->
 <div id="editModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">Cambiar ID del Campo</div>
-        <input type="text" id="modalInputName" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+    <div class="modal-content" style="width: 350px;">
+        <div class="modal-header">Propiedades del Campo</div>
+        
+        <div class="field-group">
+            <label class="section-title">ID del Campo</label>
+            <input type="text" id="modalInputName" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+
+        <div id="textOptions">
+            <div class="field-group" style="margin-top: 10px;">
+                <label class="section-title">Tamaño de Fuente</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="number" id="modalFontSize" value="12" min="1" max="100" style="width: 60px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <label style="font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="modalAutoFit"> Auto-ajuste
+                    </label>
+                </div>
+            </div>
+
+            <div class="field-group" style="margin-top: 10px;">
+                <label class="section-title">Alineación</label>
+                <select id="modalAlignment" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="left">Izquierda</option>
+                    <option value="center">Centro</option>
+                    <option value="right">Derecha</option>
+                </select>
+            </div>
+        </div>
+
         <div class="modal-footer">
             <button class="btn btn-outline" onclick="pdfEditor.closeModal()">Cancelar</button>
             <button class="btn" onclick="pdfEditor.saveModalChanges()">Guardar</button>

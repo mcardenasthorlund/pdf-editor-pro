@@ -37,6 +37,10 @@ class PDFEditor {
             targetFieldsList: document.getElementById('targetFieldsList'),
             editModal: document.getElementById('editModal'),
             modalInputName: document.getElementById('modalInputName'),
+            modalFontSize: document.getElementById('modalFontSize'),
+            modalAutoFit: document.getElementById('modalAutoFit'),
+            modalAlignment: document.getElementById('modalAlignment'),
+            textOptions: document.getElementById('textOptions'),
             manualName: document.getElementById('manualName'),
             manualType: document.getElementById('manualType')
         };
@@ -113,7 +117,11 @@ class PDFEditor {
             card.className = 'source-field-card';
             card.innerHTML = `<b>${sf.name}</b> <span class="badge">${sf.typeLabel}</span>`;
             card.onclick = () => {
-                this.pendingFields.push({ page: sf.page, x: sf.rect.x, y: sf.rect.y, w: sf.rect.w, h: sf.rect.h, name: sf.name, type: sf.techType });
+                this.pendingFields.push({ 
+                    page: sf.page, x: sf.rect.x, y: sf.rect.y, w: sf.rect.w, h: sf.rect.h, 
+                    name: sf.name, type: sf.techType,
+                    fontSize: 12, autoFit: false, alignment: 'left'
+                });
                 this.updateSourceSidebar();
                 this.updateSidebar();
                 this.render();
@@ -198,7 +206,18 @@ class PDFEditor {
 
     openModal(index) {
         this.editingFieldIndex = index;
-        this.elements.modalInputName.value = this.pendingFields[index].name;
+        const field = this.pendingFields[index];
+        this.elements.modalInputName.value = field.name;
+        
+        if (field.type === 'text') {
+            this.elements.textOptions.style.display = 'block';
+            this.elements.modalFontSize.value = field.fontSize || 12;
+            this.elements.modalAutoFit.checked = !!field.autoFit;
+            this.elements.modalAlignment.value = field.alignment || 'left';
+        } else {
+            this.elements.textOptions.style.display = 'none';
+        }
+        
         this.elements.editModal.style.display = 'flex';
     }
 
@@ -207,9 +226,17 @@ class PDFEditor {
     }
 
     saveModalChanges() {
-        const newName = this.elements.modalInputName.value.trim();
-        if (newName && this.editingFieldIndex !== null) {
-            this.pendingFields[this.editingFieldIndex].name = newName;
+        if (this.editingFieldIndex !== null) {
+            const field = this.pendingFields[this.editingFieldIndex];
+            const newName = this.elements.modalInputName.value.trim();
+            if (newName) field.name = newName;
+            
+            if (field.type === 'text') {
+                field.fontSize = parseInt(this.elements.modalFontSize.value) || 12;
+                field.autoFit = this.elements.modalAutoFit.checked;
+                field.alignment = this.elements.modalAlignment.value;
+            }
+            
             this.updateSidebar();
             this.pdfDestJS.getPage(this.currentPage).then(page => this.drawOverlays(page));
         }
@@ -260,7 +287,8 @@ class PDFEditor {
             w: Math.abs(p2[0] - p1[0]),
             h: Math.abs(p2[1] - p1[1]),
             name: this.elements.manualName.value || 'campo_' + Date.now(),
-            type: this.elements.manualType.value
+            type: this.elements.manualType.value,
+            fontSize: 12, autoFit: false, alignment: 'left'
         });
         this.elements.manualName.value = '';
         this.updateSidebar();
@@ -311,6 +339,22 @@ class PDFEditor {
                 if (f.type === 'text') {
                     const field = form.createTextField(f.name);
                     field.addToPage(page, { x: f.x, y: f.y, width: f.w, height: f.h });
+                    
+                    // Aplicar estilos si existen
+                    if (f.autoFit) {
+                        field.setFontSize(0); // 0 indica auto-ajuste en pdf-lib para campos de texto
+                    } else if (f.fontSize) {
+                        field.setFontSize(f.fontSize);
+                    }
+
+                    if (f.alignment) {
+                        const alignMap = {
+                            'left': PDFLib.TextAlignment.Left,
+                            'center': PDFLib.TextAlignment.Center,
+                            'right': PDFLib.TextAlignment.Right
+                        };
+                        field.setAlignment(alignMap[f.alignment] || PDFLib.TextAlignment.Left);
+                    }
                 } else {
                     const field = form.createCheckBox(f.name);
                     field.addToPage(page, { x: f.x, y: f.y, width: f.w, height: f.h });
