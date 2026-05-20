@@ -13,6 +13,8 @@ La herramienta está disponible para su uso inmediato en: **[https://apppdf.idea
 -   **🖱️ Interacción Intuitiva:** Arrastra para mover los campos y utiliza los manejadores para redimensionarlos visualmente.
 -   **🖱️ Selección y Edición Grupal:** Selecciona múltiples campos (usando `Shift + Clic`) para moverlos, alinearlos o distribuirlos uniformemente. Edita propiedades como fuente y alineación de todo el grupo simultáneamente (el ID se bloquea en edición grupal).
 -   **👯 Clonación de Campos:** Clona rápidamente los elementos seleccionados para crear duplicados instantáneos y moverlos en bloque.
+-   **📐 Redimensionamiento Avanzado:** Manejadores en los 8 puntos (esquinas y lados) para ajustes precisos, con bloqueo de ejes en los laterales y redimensionamiento grupal sincronizado.
+-   **💾 Guardado Personalizado:** Introduce el nombre que desees para tu archivo final antes de descargar el PDF.
 -   **🆔 Edición de IDs:** Haz doble clic en cualquier campo para cambiar su identificador técnico.
 -   **📱 Soporte PWA:** Instalable en dispositivos móviles y escritorio para un acceso rápido y funcional.
 -   **💾 Exportación Directa:** Genera y descarga el nuevo PDF con todos los campos incrustados técnicamente mediante `pdf-lib`.
