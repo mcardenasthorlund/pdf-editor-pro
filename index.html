@@ -16,7 +16,7 @@
 <header>
     <div style="display:flex; flex-direction:column;">
         <span style="font-weight:bold; color:var(--primary);">PDF EDITOR PRO</span>
-        <span style="font-size:10px; color:#666;">v1.02</span>
+        <span style="font-size:10px; color:#666;">v1.2</span>
     </div>
     <button class="btn" onclick="document.getElementById('fileDest').click()">1. PDF Destino</button>
     <input type="file" id="fileDest" accept="application/pdf" style="display:none">
@@ -109,6 +109,24 @@
     </div>
 
     <div class="viewer-container" id="viewerContainer">
+        <div id="viewerToolbar">
+            <button class="btn btn-outline" title="Alinear Izquierda" onclick="pdfEditor.alignSelected('left')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v2H3zM3 9h12v2H3zM3 15h18v2H3zM3 21h12v2H3z"/></svg>
+            </button>
+            <button class="btn btn-outline" title="Alinear Centro" onclick="pdfEditor.alignSelected('center')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v2H3zM6 9h12v2H6zM3 15h18v2H3zM6 21h12v2H6z"/></svg>
+            </button>
+            <button class="btn btn-outline" title="Alinear Derecha" onclick="pdfEditor.alignSelected('right')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v2H3zM9 9h12v2H9zM3 15h18v2H3zM9 21h12v2H9z"/></svg>
+            </button>
+            <div class="toolbar-divider"></div>
+            <button class="btn btn-outline" title="Espaciar Verticalmente" onclick="pdfEditor.distributeSelected()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="4"/><rect x="3" y="17" width="18" height="4"/><path d="M12 7v10"/></svg>
+            </button>
+            <button class="btn btn-outline" title="Deseleccionar" style="color:red; margin-left:auto;" onclick="pdfEditor.clearSelection()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
         <div class="canvas-wrapper" id="canvasWrapper" style="display:none;">
             <canvas id="pdfCanvas"></canvas>
             <div class="overlay-layer" id="overlayLayer"></div>

@@ -6,6 +6,7 @@ class PDFEditor {
         this.totalPages = 0;
         this.scale = 1.5;
         this.pendingFields = [];
+        this.selectedFields = [];
         this.sourceFields = [];
         this.editingFieldIndex = null;
         this.activeInteraction = null;
@@ -149,10 +150,17 @@ class PDFEditor {
         overlay.innerHTML = '';
         const viewport = pdfPageJS.getViewport({ scale: this.scale });
 
+        // Manejador de deselección al clicar en el fondo
+        overlay.onmousedown = (e) => {
+            if (e.target === overlay) {
+                this.clearSelection();
+            }
+        };
+
         this.pendingFields.filter(f => f.page === this.currentPage).forEach((f, idx) => {
             const realIdx = this.pendingFields.indexOf(f);
             const el = document.createElement('div');
-            el.className = 'placed-field';
+            el.className = 'placed-field' + (this.selectedFields.includes(realIdx) ? ' selected' : '');
             const [x, y, x2, y2] = viewport.convertToViewportRectangle([f.x, f.y, f.x + f.w, f.y + f.h]);
             el.style.left = x + 'px';
             el.style.top = Math.min(y, y2) + 'px';
@@ -162,18 +170,76 @@ class PDFEditor {
 
             const handle = document.createElement('div');
             handle.className = 'resize-handle';
+            
             el.onmousedown = (e) => {
                 e.stopPropagation();
+                if (e.shiftKey) {
+                    this.toggleSelection(realIdx);
+                } else if (!this.selectedFields.includes(realIdx)) {
+                    this.selectedFields = [realIdx];
+                    this.drawOverlays(pdfPageJS);
+                }
+                
+                // Iniciar interacción
                 if (e.target === handle) this.startInteraction('resize', realIdx, e, f);
                 else this.startInteraction('move', realIdx, e, f);
             };
-            el.ondblclick = (e) => {
-                e.stopPropagation();
-                this.openModal(realIdx);
-            };
+            el.ondblclick = (e) => { e.stopPropagation(); this.openModal(realIdx); };
             el.appendChild(handle);
             overlay.appendChild(el);
         });
+    }
+
+    toggleSelection(idx) {
+        const i = this.selectedFields.indexOf(idx);
+        if (i > -1) this.selectedFields.splice(i, 1);
+        else this.selectedFields.push(idx);
+        this.render();
+    }
+
+    clearSelection() {
+        this.selectedFields = [];
+        this.render();
+    }
+
+    alignSelected(type) {
+        if (this.selectedFields.length < 2) return;
+        const fields = this.selectedFields.map(idx => this.pendingFields[idx]);
+        if (type === 'left') {
+            const minX = Math.min(...fields.map(f => f.x));
+            fields.forEach(f => f.x = minX);
+        } else if (type === 'center') {
+            const centerX = fields.reduce((sum, f) => sum + f.x + f.w/2, 0) / fields.length;
+            fields.forEach(f => f.x = centerX - f.w/2);
+        } else if (type === 'right') {
+            const maxX = Math.max(...fields.map(f => f.x + f.w));
+            fields.forEach(f => f.x = maxX - f.w);
+        }
+        this.render();
+    }
+
+    distributeSelected() {
+        if (this.selectedFields.length < 3) return;
+        
+        // Ordenar por borde superior (y + h) descendente
+        const fields = this.selectedFields.map(idx => this.pendingFields[idx])
+            .sort((a, b) => (b.y + b.h) - (a.y + a.h));
+        
+        const topField = fields[0];
+        const bottomField = fields[fields.length - 1];
+        
+        // Espacio total disponible entre el borde inferior del top y borde superior del bottom
+        const totalSpace = (topField.y) - (bottomField.y + bottomField.h);
+        const totalFieldHeight = fields.slice(1, -1).reduce((sum, f) => sum + f.h, 0);
+        const gap = (totalSpace - totalFieldHeight) / (fields.length - 1);
+        
+        let nextY = topField.y - gap;
+        for (let i = 1; i < fields.length - 1; i++) {
+            fields[i].y = nextY - fields[i].h;
+            nextY = fields[i].y - gap;
+        }
+        
+        this.render();
     }
 
     startInteraction(type, index, e, field) {
@@ -184,16 +250,33 @@ class PDFEditor {
         if (!this.activeInteraction) return;
         const dx = (e.clientX - this.activeInteraction.startX) / this.scale;
         const dy = (e.clientY - this.activeInteraction.startY) / this.scale;
+        
+        // Actualizar referencia de inicio para el próximo evento de movimiento
+        this.activeInteraction.startX = e.clientX;
+        this.activeInteraction.startY = e.clientY;
+
         const field = this.pendingFields[this.activeInteraction.fieldIndex];
-        const initial = this.activeInteraction.initialRect;
+        
         if (this.activeInteraction.type === 'move') {
-            field.x = initial.x + dx;
-            field.y = initial.y - dy;
+            // Mover el campo actual
+            field.x += dx;
+            field.y -= dy;
+            
+            // Mover todos los seleccionados si el actual es parte de la selección
+            if (this.selectedFields.includes(this.activeInteraction.fieldIndex)) {
+                this.selectedFields.forEach(idx => {
+                    if (idx !== this.activeInteraction.fieldIndex) {
+                        this.pendingFields[idx].x += dx;
+                        this.pendingFields[idx].y -= dy;
+                    }
+                });
+            }
         } else if (this.activeInteraction.type === 'resize') {
-            field.w = Math.max(10, initial.w + dx);
-            field.h = Math.max(10, initial.h + dy);
-            field.y = initial.y - dy;
+            field.w = Math.max(10, field.w + dx);
+            field.h = Math.max(10, field.h + dy);
+            field.y = field.y - dy;
         }
+        
         const page = await this.pdfDestJS.getPage(this.currentPage);
         this.drawOverlays(page);
     }
@@ -207,7 +290,22 @@ class PDFEditor {
     openModal(index) {
         this.editingFieldIndex = index;
         const field = this.pendingFields[index];
-        this.elements.modalInputName.value = field.name;
+        const isGroup = this.selectedFields.length > 1;
+        
+        // Elemento visual para el aviso
+        let warning = document.getElementById('modalWarning');
+        if (!warning) {
+            warning = document.createElement('div');
+            warning.id = 'modalWarning';
+            warning.style.cssText = "color: #d93025; font-size: 12px; font-weight: bold; margin-bottom: 10px; display: none;";
+            warning.textContent = "⚠ Estás editando un grupo. Los cambios afectarán a todos los elementos seleccionados. El ID no se modificará.";
+            this.elements.editModal.querySelector('.modal-content').insertBefore(warning, this.elements.editModal.querySelector('.field-group'));
+        }
+        warning.style.display = isGroup ? 'block' : 'none';
+
+        this.elements.modalInputName.value = isGroup ? '' : field.name;
+        this.elements.modalInputName.disabled = isGroup;
+        this.elements.modalInputName.placeholder = isGroup ? 'Edición de ID deshabilitada en grupo' : '';
         
         if (field.type === 'text') {
             this.elements.textOptions.style.display = 'block';
@@ -227,15 +325,20 @@ class PDFEditor {
 
     saveModalChanges() {
         if (this.editingFieldIndex !== null) {
-            const field = this.pendingFields[this.editingFieldIndex];
-            const newName = this.elements.modalInputName.value.trim();
-            if (newName) field.name = newName;
-            
-            if (field.type === 'text') {
-                field.fontSize = parseInt(this.elements.modalFontSize.value) || 12;
-                field.autoFit = this.elements.modalAutoFit.checked;
-                field.alignment = this.elements.modalAlignment.value;
-            }
+            const fieldsToUpdate = this.selectedFields.includes(this.editingFieldIndex) 
+                ? this.selectedFields.map(idx => this.pendingFields[idx]) 
+                : [this.pendingFields[this.editingFieldIndex]];
+
+            fieldsToUpdate.forEach(field => {
+                const newName = this.elements.modalInputName.value.trim();
+                if (newName) field.name = newName;
+                
+                if (field.type === 'text') {
+                    field.fontSize = parseInt(this.elements.modalFontSize.value) || 12;
+                    field.autoFit = this.elements.modalAutoFit.checked;
+                    field.alignment = this.elements.modalAlignment.value;
+                }
+            });
             
             this.updateSidebar();
             this.pdfDestJS.getPage(this.currentPage).then(page => this.drawOverlays(page));

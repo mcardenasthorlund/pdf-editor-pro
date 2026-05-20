@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdf-editor-v1';
+const CACHE_NAME = 'pdf-editor-v1.2';
 const ASSETS = [
   './',
   './index.html',

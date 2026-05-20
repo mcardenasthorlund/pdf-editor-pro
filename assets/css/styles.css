@@ -29,13 +29,28 @@ header {
     flex: 1; 
     overflow: auto; 
     display: flex; 
-    justify-content: center; 
-    padding: 40px; 
+    flex-direction: column;
+    padding: 0; 
     background: #525659; 
     position: relative; 
 }
 
+#viewerToolbar {
+    background: #f1f3f4;
+    padding: 10px;
+    display: flex;
+    gap: 10px;
+    border-bottom: 1px solid #ddd;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.toolbar-divider { width: 1px; height: 24px; background: #ccc; margin: 0 5px; }
+
 .canvas-wrapper { 
+    margin: 40px auto;
     position: relative; 
     box-shadow: 0 0 20px rgba(0,0,0,0.5); 
     background: white; 
@@ -68,7 +83,7 @@ canvas { display: block; }
     user-select: none;
 }
 .placed-field:hover { background: rgba(26, 115, 232, 0.2); }
-.placed-field.selected { border: 2px solid #ff5722; z-index: 10; }
+.placed-field.selected { border: 2px solid #ff5722 !important; background: rgba(255, 87, 34, 0.2) !important; z-index: 10; }
 
 .resize-handle {
     position: absolute;
