@@ -222,6 +222,30 @@ class PDFEditor {
         this.render();
     }
 
+    distributeSelected() {
+        if (this.selectedFields.length < 3) return;
+        
+        // Ordenar por borde superior (y + h) descendente
+        const fields = this.selectedFields.map(idx => this.pendingFields[idx])
+            .sort((a, b) => (b.y + b.h) - (a.y + a.h));
+        
+        const topField = fields[0];
+        const bottomField = fields[fields.length - 1];
+        
+        // Espacio total disponible entre el borde inferior del top y borde superior del bottom
+        const totalSpace = (topField.y) - (bottomField.y + bottomField.h);
+        const totalFieldHeight = fields.slice(1, -1).reduce((sum, f) => sum + f.h, 0);
+        const gap = (totalSpace - totalFieldHeight) / (fields.length - 1);
+        
+        let nextY = topField.y - gap;
+        for (let i = 1; i < fields.length - 1; i++) {
+            fields[i].y = nextY - fields[i].h;
+            nextY = fields[i].y - gap;
+        }
+        
+        this.render();
+    }
+
     cloneSelected() {
         if (this.selectedFields.length === 0) return;
         
