@@ -16,7 +16,7 @@
 <header>
     <div style="display:flex; flex-direction:column;">
         <span style="font-weight:bold; color:var(--primary);">PDF EDITOR PRO</span>
-        <span style="font-size:10px; color:#666;">v1.22</span>
+        <span style="font-size:10px; color:#666;">v1.23</span>
     </div>
     <button class="btn" onclick="document.getElementById('fileDest').click()">1. PDF Destino</button>
     <input type="file" id="fileDest" accept="application/pdf" style="display:none">
@@ -135,6 +135,16 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v2H3zM9 9h12v2H9zM3 15h18v2H3zM9 21h12v2H9z"/></svg>
             </button>
             <div class="toolbar-divider"></div>
+            <button class="btn btn-outline" title="Igualar Ancho" onclick="pdfEditor.matchSize('width')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="7" width="16" height="10" rx="1"/><path d="M4 4v3m16-3v3M4 20v-3m16 3v-3"/></svg>
+            </button>
+            <button class="btn btn-outline" title="Igualar Alto" onclick="pdfEditor.matchSize('height')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="4" width="10" height="16" rx="1"/><path d="M4 4h3m10 0h3M4 20h3m10 0h3"/></svg>
+            </button>
+            <button class="btn btn-outline" title="Igualar Ambos" onclick="pdfEditor.matchSize('both')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="1"/><path d="M2 2l4 4m16-4l-4 4m0 12l4 4M6 18l-4 4"/></svg>
+            </button>
+            <div class="toolbar-divider"></div>
             <button class="btn btn-outline" title="Espaciar Verticalmente" onclick="pdfEditor.distributeSelected()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="4"/><rect x="3" y="17" width="18" height="4"/><path d="M12 7v10"/></svg>
             </button>
@@ -150,7 +160,14 @@
             <div class="overlay-layer" id="overlayLayer"></div>
             <div id="tempDraw"></div>
         </div>
-        <div id="msg" style="color:white; text-align:center;">
+        <div id="msg">
+            <div class="bg-pdf-icon">
+                <svg width="180" height="180" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M128 96C128 78.3269 142.327 64 160 64H320L384 128V416C384 433.673 369.673 448 352 448H160C142.327 448 128 433.673 128 416V96Z" fill="currentColor"/>
+                    <path d="M320 64L384 128H320V64Z" fill="currentColor" opacity="0.5"/>
+                    <text x="50%" y="65%" dominant-baseline="middle" text-anchor="middle" font-family="Segoe UI, Arial" font-weight="bold" font-size="100" fill="currentColor" opacity="0.8">PDF</text>
+                </svg>
+            </div>
             <h3>Editor PDF Interactivo Pro</h3>
             <p>1. Carga el PDF base.<br>2. Carga una plantilla para clonar o dibuja manualmente.<br>Doble clic para editar ID.</p>
         </div>

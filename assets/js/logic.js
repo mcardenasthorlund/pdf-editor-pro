@@ -2,6 +2,7 @@ import { Alignment } from './components/Alignment.js';
 import { Cloning } from './components/Cloning.js';
 import { EditorModal } from './components/EditorModal.js';
 import { Saving } from './components/Saving.js';
+import { Resizing } from './components/Resizing.js';
 
 class PDFEditor {
     constructor() {
@@ -36,6 +37,7 @@ class PDFEditor {
     // Métodos delegados
     alignSelected(type) { Alignment.alignSelected(this, type); }
     distributeSelected() { Alignment.distributeSelected(this); }
+    matchSize(dim) { Resizing.matchSize(this, dim); }
     cloneSelected() { Cloning.cloneSelected(this); }
     openModal(idx) { EditorModal.openModal(this, idx); }
     closeModal() { EditorModal.closeModal(this); }
@@ -87,12 +89,77 @@ class PDFEditor {
             this.stopDrawing(e);
             this.stopGlobalInteraction();
         };
+        window.onkeydown = (e) => this.handleKeyDown(e);
+    }
+
+    handleKeyDown(e) {
+        if (this.selectedFields.length === 0) return;
+        
+        const arrows = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+        if (!arrows.includes(e.key)) return;
+
+        // Evitar scroll de la página al usar flechas si hay campos seleccionados
+        e.preventDefault();
+
+        const step = e.shiftKey ? 5 : 1;
+        
+        this.selectedFields.forEach(idx => {
+            const f = this.pendingFields[idx];
+            if (e.key === 'ArrowUp') f.y += step;
+            if (e.key === 'ArrowDown') f.y -= step;
+            if (e.key === 'ArrowLeft') f.x -= step;
+            if (e.key === 'ArrowRight') f.x += step;
+        });
+        
+        this.render();
     }
 
     async handleFileDest(e) {
         const file = e.target.files[0];
         if (!file) return;
         this.pdfDestBytes = await file.arrayBuffer();
+        
+        // Cargar para extracción de campos existentes (Modo Edición)
+        try {
+            const pdfDoc = await PDFLib.PDFDocument.load(this.pdfDestBytes);
+            const form = pdfDoc.getForm();
+            const fields = form.getFields();
+            
+            this.pendingFields = [];
+            fields.forEach(field => {
+                const name = field.getName();
+                let techType = 'text';
+                if (field instanceof PDFLib.PDFCheckBox) techType = 'checkbox';
+                else if (field instanceof PDFLib.PDFTextField) techType = 'text';
+                
+                const widgets = field.acroField.getWidgets();
+                if (widgets.length > 0) {
+                    const widget = widgets[0];
+                    const rect = widget.getRectangle();
+                    const pageNum = pdfDoc.getPages().findIndex(p => p.ref === widget.P()) + 1 || 1;
+                    
+                    let fontSize = 0;
+                    let alignment = 'left';
+                    if (field instanceof PDFLib.PDFTextField) {
+                        try { fontSize = field.getFontSize() || 0; } catch(e) {}
+                        try {
+                            const quadding = field.acroField.getQuadding();
+                            if (quadding === 1) alignment = 'center';
+                            else if (quadding === 2) alignment = 'right';
+                        } catch(e) {}
+                    }
+
+                    this.pendingFields.push({
+                        page: pageNum, x: rect.x, y: rect.y, w: rect.width, h: rect.height,
+                        name, type: techType, fontSize, autoFit: fontSize === 0, alignment
+                    });
+                }
+            });
+            this.updateSidebar();
+        } catch (err) {
+            console.error("Error al extraer campos:", err);
+        }
+
         this.pdfDestJS = await pdfjsLib.getDocument({ data: this.pdfDestBytes.slice(0) }).promise;
         this.totalPages = this.pdfDestJS.numPages;
         this.currentPage = 1;
@@ -274,8 +341,7 @@ class PDFEditor {
             });
         }
         
-        const page = await this.pdfDestJS.getPage(this.currentPage);
-        this.drawOverlays(page);
+        this.updateOverlays();
     }
 
     stopGlobalInteraction() {

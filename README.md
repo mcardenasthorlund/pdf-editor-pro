@@ -1,6 +1,6 @@
 # PDF Editor Pro 📄🖋️
 
-**PDF Editor Pro** es una herramienta web interactiva y potente diseñada para editar formularios PDF de manera visual. Permite a los usuarios cargar un documento base y añadir campos de texto o checkboxes, ya sea clonándolos de una plantilla existente o dibujándolos manualmente sobre el documento.
+**PDF Editor Pro** es una herramienta web interactiva y potente diseñada para editar formularios PDF de manera visual. Permite a los usuarios cargar un documento base y gestionar sus campos de formulario de forma intuitiva, ya sea editando los existentes, clonándolos de una plantilla o dibujándolos manualmente.
 
 La herramienta está disponible para su uso inmediato en: **[https://apppdf.ideasypruebas2.es](https://apppdf.ideasypruebas2.es)**
 
@@ -8,33 +8,35 @@ La herramienta está disponible para su uso inmediato en: **[https://apppdf.idea
 
 ## ✨ Funcionalidades Principales
 
--   **🎯 Clonación de Campos:** Carga un PDF como plantilla y clona sus campos de formulario directamente en tu documento de destino manteniendo sus dimensiones originales.
+-   **📝 Modo Edición Completa:** Carga cualquier PDF con campos de formulario existentes y edítalos directamente. El sistema extrae automáticamente nombres, posiciones, tamaños y estilos para que puedas moverlos, redimensionarlos o eliminarlos.
+-   **🎯 Clonación de Plantillas:** Carga un PDF adicional como plantilla y clona sus campos en tu documento de destino manteniendo las dimensiones originales.
 -   **✍️ Dibujo Manual:** Utiliza el ratón para dibujar nuevos campos de texto o checkboxes en cualquier lugar del documento.
--   **🖱️ Interacción Intuitiva:** Arrastra para mover los campos y utiliza los manejadores para redimensionarlos visualmente.
--   **🖱️ Selección y Edición Grupal:** Selecciona múltiples campos (usando `Shift + Clic`) para moverlos, alinearlos o distribuirlos uniformemente. Edita propiedades como fuente y alineación de todo el grupo simultáneamente (el ID se bloquea en edición grupal).
--   **👯 Clonación de Campos:** Clona rápidamente los elementos seleccionados para crear duplicados instantáneos y moverlos en bloque.
--   **📐 Redimensionamiento Avanzado:** Manejadores en los 8 puntos (esquinas y lados) para ajustes precisos, con bloqueo de ejes en los laterales y redimensionamiento grupal sincronizado.
--   **💾 Guardado Personalizado:** Introduce el nombre que desees para tu archivo final antes de descargar el PDF.
--   **🆔 Edición de IDs:** Haz doble clic en cualquier campo para cambiar su identificador técnico.
--   **📱 Soporte PWA:** Instalable en dispositivos móviles y escritorio para un acceso rápido y funcional.
--   **💾 Exportación Directa:** Genera y descarga el nuevo PDF con todos los campos incrustados técnicamente mediante `pdf-lib`.
+-   **⌨️ Movimiento de Precisión:** Ajusta la posición de los campos seleccionados píxel a píxel usando las flechas del teclado (o de 5 en 5 píxeles manteniendo `Shift`).
+-   **📏 Herramientas de Dimensionado:** Nuevos controles para igualar el ancho, el alto o ambas dimensiones de todos los campos seleccionados respecto al primero.
+-   **🖱️ Selección y Edición Grupal:** Selecciona múltiples campos (usando `Shift + Clic`) para moverlos, alinearlos o distribuirlos uniformemente. Edita propiedades como fuente y alineación de todo el grupo simultáneamente.
+-   **📐 Redimensionamiento Avanzado:** Manejadores en los 8 puntos para ajustes precisos con sincronización grupal.
+-   **👯 Clonación Rápida:** Duplica instantáneamente los elementos seleccionados para crear formularios repetitivos en segundos.
+-   **🆔 Gestión de IDs:** Doble clic en cualquier campo para cambiar su identificador técnico.
+-   **🚫 Campos sin Bordes:** Los PDFs generados incluyen campos interactivos totalmente funcionales pero sin bordes visibles para una estética más limpia y profesional.
+-   **💾 Guardado Flexible:** Personaliza el nombre del archivo antes de exportar el resultado final.
+-   **📱 Soporte PWA:** Instalable en dispositivos móviles y escritorio para un acceso rápido y funcional sin conexión.
 
 ---
 
 ## 🚀 Tecnologías Utilizadas
 
--   **[pdf-lib](https://pdf-lib.js.org/):** Para la manipulación y generación de documentos PDF en el lado del cliente.
+-   **[pdf-lib](https://pdf-lib.js.org/):** Para la manipulación y generación de documentos PDF en el lado del cliente (incluyendo manipulación de bajo nivel de diccionarios).
 -   **[PDF.js](https://mozilla.github.io/pdf.js/):** Para el renderizado de alta fidelidad de los documentos en el navegador.
--   **Vanilla JS (ES6+):** Lógica encapsulada en clases para un rendimiento óptimo sin dependencias pesadas.
--   **CSS3 Custom Properties:** Diseño moderno y responsive con soporte para temas.
+-   **Vanilla JS (ES6+):** Arquitectura modular basada en componentes para facilitar el mantenimiento y la extensibilidad.
+-   **CSS3 Custom Properties:** Diseño moderno y fluido con interfaz optimizada para evitar parpadeos durante la edición.
 
 ---
 
 ## 🛠️ Instalación y Uso Local
 
 1.  Clona este repositorio.
-2.  Abre `index.html` en tu navegador preferido (se recomienda un servidor local para el correcto funcionamiento del Service Worker).
-3.  ¡Empieza a editar tus PDFs!
+2.  Abre `index.html` en tu navegador preferido.
+3.  ¡Empieza a editar tus PDFs de forma profesional!
 
 ---
 
