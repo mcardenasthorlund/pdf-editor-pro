@@ -16,7 +16,7 @@
 <header>
     <div style="display:flex; flex-direction:column;">
         <span style="font-weight:bold; color:var(--primary);">PDF EDITOR PRO</span>
-        <span style="font-size:10px; color:#666;">v5 Final Edition</span>
+        <span style="font-size:10px; color:#666;">v1.01</span>
     </div>
     <button class="btn" onclick="document.getElementById('fileDest').click()">1. PDF Destino</button>
     <input type="file" id="fileDest" accept="application/pdf" style="display:none">
@@ -31,6 +31,18 @@
     
     <button class="btn btn-success" id="saveBtn" style="margin-left:auto;" disabled>Guardar PDF</button>
 </header>
+
+<!-- Modal de actualización -->
+<div id="updateModal" class="modal">
+    <div class="modal-content" style="width: 300px; text-align: center;">
+        <div class="modal-header">¡Nueva Versión Disponible!</div>
+        <p style="padding: 10px; font-size: 14px; color: #555;">Hay una actualización lista para instalarse. ¿Quieres actualizar ahora?</p>
+        <div class="modal-footer" style="justify-content: center; gap: 10px;">
+            <button class="btn btn-outline" onclick="document.getElementById('updateModal').style.display='none'">Más tarde</button>
+            <button class="btn" id="updateBtn">Actualizar</button>
+        </div>
+    </div>
+</div>
 
 <!-- Modal de edición -->
 <div id="editModal" class="modal">
@@ -113,10 +125,38 @@
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Service Worker registrado correctamente'))
-                .catch(err => console.log('Error al registrar el Service Worker', err));
+            navigator.serviceWorker.register('./sw.js').then(reg => {
+                console.log('Service Worker registrado correctamente');
+
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            showUpdateModal(reg);
+                        }
+                    });
+                });
+            }).catch(err => console.log('Error al registrar el Service Worker', err));
+
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    window.location.reload();
+                    refreshing = true;
+                }
+            });
         });
+    }
+
+    function showUpdateModal(reg) {
+        const modal = document.getElementById('updateModal');
+        const btn = document.getElementById('updateBtn');
+        modal.style.display = 'flex';
+        btn.onclick = () => {
+            if (reg.waiting) {
+                reg.waiting.postMessage('SKIP_WAITING');
+            }
+        };
     }
 </script>
 </body>
