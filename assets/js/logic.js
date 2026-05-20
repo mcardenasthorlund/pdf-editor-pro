@@ -120,7 +120,7 @@ class PDFEditor {
                 this.pendingFields.push({ 
                     page: sf.page, x: sf.rect.x, y: sf.rect.y, w: sf.rect.w, h: sf.rect.h, 
                     name: sf.name, type: sf.techType,
-                    fontSize: 12, autoFit: false, alignment: 'left'
+                    fontSize: 0, autoFit: true, alignment: 'left'
                 });
                 this.updateSourceSidebar();
                 this.updateSidebar();
@@ -288,7 +288,9 @@ class PDFEditor {
             h: Math.abs(p2[1] - p1[1]),
             name: this.elements.manualName.value || 'campo_' + Date.now(),
             type: this.elements.manualType.value,
-            fontSize: 12, autoFit: false, alignment: 'left'
+            fontSize: this.elements.manualType.value === 'text' ? 0 : 12,
+            autoFit: this.elements.manualType.value === 'text' ? true : false,
+            alignment: 'left'
         });
         this.elements.manualName.value = '';
         this.updateSidebar();
