@@ -78,23 +78,31 @@ canvas { display: block; }
     font-size: 10px; 
     color: var(--primary); 
     font-weight: bold; 
-    cursor: move; 
+    cursor: default; 
     box-sizing: border-box; 
     user-select: none;
 }
 .placed-field:hover { background: rgba(26, 115, 232, 0.2); }
-.placed-field.selected { border: 2px solid #ff5722 !important; background: rgba(255, 87, 34, 0.2) !important; z-index: 10; }
+.placed-field.selected { border: 2px solid #ff5722 !important; background: rgba(255, 87, 34, 0.2) !important; z-index: 10; cursor: move; }
 
 .resize-handle {
     position: absolute;
     width: 8px;
     height: 8px;
     background: #ff5722;
-    right: -4px;
-    bottom: -4px;
-    cursor: nwse-resize;
     border-radius: 50%;
+    z-index: 11;
+    pointer-events: auto;
 }
+
+.handle-n { top: -4px; left: 50%; margin-left: -4px; cursor: n-resize; }
+.handle-s { bottom: -4px; left: 50%; margin-left: -4px; cursor: s-resize; }
+.handle-e { top: 50%; right: -4px; margin-top: -4px; cursor: e-resize; }
+.handle-w { top: 50%; left: -4px; margin-top: -4px; cursor: w-resize; }
+.handle-ne { top: -4px; right: -4px; cursor: ne-resize; }
+.handle-nw { top: -4px; left: -4px; cursor: nw-resize; }
+.handle-se { bottom: -4px; right: -4px; cursor: se-resize; }
+.handle-sw { bottom: -4px; left: -4px; cursor: sw-resize; }
 
 .btn { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; }
 .btn-outline { background: white; color: var(--primary); border: 1px solid var(--primary); }

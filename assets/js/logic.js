@@ -150,10 +150,10 @@ class PDFEditor {
         overlay.innerHTML = '';
         const viewport = pdfPageJS.getViewport({ scale: this.scale });
 
-        // Manejador de deselección al clicar en el fondo
         overlay.onmousedown = (e) => {
             if (e.target === overlay) {
                 this.clearSelection();
+                this.startDrawing(e);
             }
         };
 
@@ -168,24 +168,28 @@ class PDFEditor {
             el.style.height = Math.abs(y2 - y) + 'px';
             el.textContent = f.name;
 
-            const handle = document.createElement('div');
-            handle.className = 'resize-handle';
-            
+            if (this.selectedFields.includes(realIdx)) {
+                ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].forEach(pos => {
+                    const handle = document.createElement('div');
+                    handle.className = 'resize-handle handle-' + pos;
+                    handle.onmousedown = (e) => {
+                        e.stopPropagation();
+                        this.startInteraction('resize-' + pos, realIdx, e, f);
+                    };
+                    el.appendChild(handle);
+                });
+            }
+
             el.onmousedown = (e) => {
                 e.stopPropagation();
-                if (e.shiftKey) {
-                    this.toggleSelection(realIdx);
-                } else if (!this.selectedFields.includes(realIdx)) {
+                if (e.shiftKey) this.toggleSelection(realIdx);
+                else if (!this.selectedFields.includes(realIdx)) {
                     this.selectedFields = [realIdx];
                     this.drawOverlays(pdfPageJS);
                 }
-                
-                // Iniciar interacción
-                if (e.target === handle) this.startInteraction('resize', realIdx, e, f);
-                else this.startInteraction('move', realIdx, e, f);
+                if (!e.target.classList.contains('resize-handle')) this.startInteraction('move', realIdx, e, f);
             };
             el.ondblclick = (e) => { e.stopPropagation(); this.openModal(realIdx); };
-            el.appendChild(handle);
             overlay.appendChild(el);
         });
     }
@@ -218,27 +222,19 @@ class PDFEditor {
         this.render();
     }
 
-    distributeSelected() {
-        if (this.selectedFields.length < 3) return;
+    cloneSelected() {
+        if (this.selectedFields.length === 0) return;
         
-        // Ordenar por borde superior (y + h) descendente
-        const fields = this.selectedFields.map(idx => this.pendingFields[idx])
-            .sort((a, b) => (b.y + b.h) - (a.y + a.h));
+        const newSelected = [];
+        this.selectedFields.forEach(idx => {
+            const f = this.pendingFields[idx];
+            const clone = { ...f, name: f.name + '_copy', x: f.x + 10, y: f.y - 10 };
+            this.pendingFields.push(clone);
+            newSelected.push(this.pendingFields.length - 1);
+        });
         
-        const topField = fields[0];
-        const bottomField = fields[fields.length - 1];
-        
-        // Espacio total disponible entre el borde inferior del top y borde superior del bottom
-        const totalSpace = (topField.y) - (bottomField.y + bottomField.h);
-        const totalFieldHeight = fields.slice(1, -1).reduce((sum, f) => sum + f.h, 0);
-        const gap = (totalSpace - totalFieldHeight) / (fields.length - 1);
-        
-        let nextY = topField.y - gap;
-        for (let i = 1; i < fields.length - 1; i++) {
-            fields[i].y = nextY - fields[i].h;
-            nextY = fields[i].y - gap;
-        }
-        
+        this.selectedFields = newSelected;
+        this.updateSidebar();
         this.render();
     }
 
@@ -256,6 +252,8 @@ class PDFEditor {
         this.activeInteraction.startY = e.clientY;
 
         const field = this.pendingFields[this.activeInteraction.fieldIndex];
+        const isGroup = this.selectedFields.includes(this.activeInteraction.fieldIndex);
+        const group = isGroup ? this.selectedFields.map(idx => this.pendingFields[idx]) : [field];
         
         if (this.activeInteraction.type === 'move') {
             // Mover el campo actual
@@ -271,10 +269,17 @@ class PDFEditor {
                     }
                 });
             }
-        } else if (this.activeInteraction.type === 'resize') {
-            field.w = Math.max(10, field.w + dx);
-            field.h = Math.max(10, field.h + dy);
-            field.y = field.y - dy;
+        } else if (this.activeInteraction.type.startsWith('resize-')) {
+            const pos = this.activeInteraction.type.split('-')[1];
+            group.forEach(f => {
+                // Resize lateral
+                if (pos.includes('e')) f.w = Math.max(10, f.w + dx);
+                if (pos.includes('w')) { f.w = Math.max(10, f.w - dx); f.x += dx; }
+                
+                // Resize vertical (invirtiendo dy porque el eje Y crece hacia arriba en PDF)
+                if (pos.includes('s')) { f.h = Math.max(10, f.h + dy); f.y -= dy; }
+                if (pos.includes('n')) { f.h = Math.max(10, f.h - dy); }
+            });
         }
         
         const page = await this.pdfDestJS.getPage(this.currentPage);
