@@ -19,14 +19,13 @@ class PDFEditor {
         this.drawing = false;
         this.drawStartX = 0;
         this.drawStartY = 0;
+        this.currentPDFPageJS = null;
 
         this.initElements();
         this.initEventListeners();
         
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
-
-    // ... initElements, initEventListeners ...
 
     performSave() {
         const fileName = this.elements.saveFileName.value || 'PDF_Editado.pdf';
@@ -98,9 +97,7 @@ class PDFEditor {
         const arrows = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
         if (!arrows.includes(e.key)) return;
 
-        // Evitar scroll de la página al usar flechas si hay campos seleccionados
         e.preventDefault();
-
         const step = e.shiftKey ? 5 : 1;
         
         this.selectedFields.forEach(idx => {
@@ -111,7 +108,7 @@ class PDFEditor {
             if (e.key === 'ArrowRight') f.x += step;
         });
         
-        this.render();
+        this.updateOverlays();
     }
 
     async handleFileDest(e) {
@@ -119,7 +116,6 @@ class PDFEditor {
         if (!file) return;
         this.pdfDestBytes = await file.arrayBuffer();
         
-        // Cargar para extracción de campos existentes (Modo Edición)
         try {
             const pdfDoc = await PDFLib.PDFDocument.load(this.pdfDestBytes);
             const form = pdfDoc.getForm();
@@ -216,7 +212,7 @@ class PDFEditor {
                 });
                 this.updateSourceSidebar();
                 this.updateSidebar();
-                this.render();
+                this.updateOverlays();
             };
             list.appendChild(card);
         });
@@ -224,16 +220,21 @@ class PDFEditor {
 
     async render() {
         if (!this.pdfDestJS) return;
-        const page = await this.pdfDestJS.getPage(this.currentPage);
-        const viewport = page.getViewport({ scale: this.scale });
+        this.currentPDFPageJS = await this.pdfDestJS.getPage(this.currentPage);
+        const viewport = this.currentPDFPageJS.getViewport({ scale: this.scale });
         const canvas = this.elements.pdfCanvas;
         const ctx = canvas.getContext('2d');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+        await this.currentPDFPageJS.render({ canvasContext: ctx, viewport: viewport }).promise;
         this.elements.pageInfo.textContent = `Pág: ${this.currentPage} / ${this.totalPages}`;
-        this.drawOverlays(page);
+        this.updateOverlays();
         this.updateSourceSidebar();
+    }
+
+    updateOverlays() {
+        if (!this.currentPDFPageJS) return;
+        this.drawOverlays(this.currentPDFPageJS);
     }
 
     drawOverlays(pdfPageJS) {
@@ -276,7 +277,7 @@ class PDFEditor {
                 if (e.shiftKey) this.toggleSelection(realIdx);
                 else if (!this.selectedFields.includes(realIdx)) {
                     this.selectedFields = [realIdx];
-                    this.drawOverlays(pdfPageJS);
+                    this.updateOverlays();
                 }
                 if (!e.target.classList.contains('resize-handle')) this.startInteraction('move', realIdx, e, f);
             };
@@ -289,24 +290,23 @@ class PDFEditor {
         const i = this.selectedFields.indexOf(idx);
         if (i > -1) this.selectedFields.splice(i, 1);
         else this.selectedFields.push(idx);
-        this.render();
+        this.updateOverlays();
     }
 
     clearSelection() {
         this.selectedFields = [];
-        this.render();
+        this.updateOverlays();
     }
 
     startInteraction(type, index, e, field) {
         this.activeInteraction = { type, fieldIndex: index, startX: e.clientX, startY: e.clientY, initialRect: { ...field } };
     }
 
-    async handleGlobalMouseMove(e) {
+    handleGlobalMouseMove(e) {
         if (!this.activeInteraction) return;
         const dx = (e.clientX - this.activeInteraction.startX) / this.scale;
         const dy = (e.clientY - this.activeInteraction.startY) / this.scale;
         
-        // Actualizar referencia de inicio para el próximo evento de movimiento
         this.activeInteraction.startX = e.clientX;
         this.activeInteraction.startY = e.clientY;
 
@@ -315,27 +315,15 @@ class PDFEditor {
         const group = isGroup ? this.selectedFields.map(idx => this.pendingFields[idx]) : [field];
         
         if (this.activeInteraction.type === 'move') {
-            // Mover el campo actual
-            field.x += dx;
-            field.y -= dy;
-            
-            // Mover todos los seleccionados si el actual es parte de la selección
-            if (this.selectedFields.includes(this.activeInteraction.fieldIndex)) {
-                this.selectedFields.forEach(idx => {
-                    if (idx !== this.activeInteraction.fieldIndex) {
-                        this.pendingFields[idx].x += dx;
-                        this.pendingFields[idx].y -= dy;
-                    }
-                });
-            }
+            group.forEach(f => {
+                f.x += dx;
+                f.y -= dy;
+            });
         } else if (this.activeInteraction.type.startsWith('resize-')) {
             const pos = this.activeInteraction.type.split('-')[1];
             group.forEach(f => {
-                // Resize lateral
                 if (pos.includes('e')) f.w = Math.max(10, f.w + dx);
                 if (pos.includes('w')) { f.w = Math.max(10, f.w - dx); f.x += dx; }
-                
-                // Resize vertical (invirtiendo dy porque el eje Y crece hacia arriba en PDF)
                 if (pos.includes('s')) { f.h = Math.max(10, f.h + dy); f.y -= dy; }
                 if (pos.includes('n')) { f.h = Math.max(10, f.h - dy); }
             });
@@ -401,7 +389,7 @@ class PDFEditor {
         });
         this.elements.manualName.value = '';
         this.updateSidebar();
-        this.render();
+        this.updateOverlays();
     }
 
     updateSidebar() {
@@ -420,7 +408,7 @@ class PDFEditor {
         this.pendingFields.splice(i, 1);
         this.updateSourceSidebar();
         this.updateSidebar();
-        this.render();
+        this.updateOverlays();
     }
 
     prevPage() {
@@ -438,7 +426,6 @@ class PDFEditor {
     }
 }
 
-// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
     window.pdfEditor = new PDFEditor();
 });
