@@ -1,3 +1,8 @@
+import { Alignment } from './components/Alignment.js';
+import { Cloning } from './components/Cloning.js';
+import { EditorModal } from './components/EditorModal.js';
+import { Saving } from './components/Saving.js';
+
 class PDFEditor {
     constructor() {
         this.pdfDestBytes = null;
@@ -20,6 +25,23 @@ class PDFEditor {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
 
+    // ... initElements, initEventListeners ...
+
+    performSave() {
+        const fileName = this.elements.saveFileName.value || 'PDF_Editado.pdf';
+        Saving.savePDF(this, fileName);
+        this.elements.saveModal.style.display = 'none';
+    }
+
+    // Métodos delegados
+    alignSelected(type) { Alignment.alignSelected(this, type); }
+    distributeSelected() { Alignment.distributeSelected(this); }
+    cloneSelected() { Cloning.cloneSelected(this); }
+    openModal(idx) { EditorModal.openModal(this, idx); }
+    closeModal() { EditorModal.closeModal(this); }
+    saveModalChanges() { EditorModal.saveModalChanges(this); }
+    savePDF() { Saving.savePDF(this); }
+
     initElements() {
         this.elements = {
             fileDest: document.getElementById('fileDest'),
@@ -37,6 +59,8 @@ class PDFEditor {
             sourceFieldsList: document.getElementById('sourceFieldsList'),
             targetFieldsList: document.getElementById('targetFieldsList'),
             editModal: document.getElementById('editModal'),
+            saveModal: document.getElementById('saveModal'),
+            saveFileName: document.getElementById('saveFileName'),
             modalInputName: document.getElementById('modalInputName'),
             modalFontSize: document.getElementById('modalFontSize'),
             modalAutoFit: document.getElementById('modalAutoFit'),
@@ -52,7 +76,7 @@ class PDFEditor {
         this.elements.fileSource.onchange = (e) => this.handleFileSource(e);
         this.elements.prevBtn.onclick = () => this.prevPage();
         this.elements.nextBtn.onclick = () => this.nextPage();
-        this.elements.saveBtn.onclick = () => this.savePDF();
+        this.elements.saveBtn.onclick = () => this.elements.saveModal.style.display = 'flex';
 
         this.elements.overlayLayer.onmousedown = (e) => this.startDrawing(e);
         window.onmousemove = (e) => {
@@ -206,62 +230,6 @@ class PDFEditor {
         this.render();
     }
 
-    alignSelected(type) {
-        if (this.selectedFields.length < 2) return;
-        const fields = this.selectedFields.map(idx => this.pendingFields[idx]);
-        if (type === 'left') {
-            const minX = Math.min(...fields.map(f => f.x));
-            fields.forEach(f => f.x = minX);
-        } else if (type === 'center') {
-            const centerX = fields.reduce((sum, f) => sum + f.x + f.w/2, 0) / fields.length;
-            fields.forEach(f => f.x = centerX - f.w/2);
-        } else if (type === 'right') {
-            const maxX = Math.max(...fields.map(f => f.x + f.w));
-            fields.forEach(f => f.x = maxX - f.w);
-        }
-        this.render();
-    }
-
-    distributeSelected() {
-        if (this.selectedFields.length < 3) return;
-        
-        // Ordenar por borde superior (y + h) descendente
-        const fields = this.selectedFields.map(idx => this.pendingFields[idx])
-            .sort((a, b) => (b.y + b.h) - (a.y + a.h));
-        
-        const topField = fields[0];
-        const bottomField = fields[fields.length - 1];
-        
-        // Espacio total disponible entre el borde inferior del top y borde superior del bottom
-        const totalSpace = (topField.y) - (bottomField.y + bottomField.h);
-        const totalFieldHeight = fields.slice(1, -1).reduce((sum, f) => sum + f.h, 0);
-        const gap = (totalSpace - totalFieldHeight) / (fields.length - 1);
-        
-        let nextY = topField.y - gap;
-        for (let i = 1; i < fields.length - 1; i++) {
-            fields[i].y = nextY - fields[i].h;
-            nextY = fields[i].y - gap;
-        }
-        
-        this.render();
-    }
-
-    cloneSelected() {
-        if (this.selectedFields.length === 0) return;
-        
-        const newSelected = [];
-        this.selectedFields.forEach(idx => {
-            const f = this.pendingFields[idx];
-            const clone = { ...f, name: f.name + '_copy', x: f.x + 10, y: f.y - 10 };
-            this.pendingFields.push(clone);
-            newSelected.push(this.pendingFields.length - 1);
-        });
-        
-        this.selectedFields = newSelected;
-        this.updateSidebar();
-        this.render();
-    }
-
     startInteraction(type, index, e, field) {
         this.activeInteraction = { type, fieldIndex: index, startX: e.clientX, startY: e.clientY, initialRect: { ...field } };
     }
@@ -314,65 +282,6 @@ class PDFEditor {
         if (!this.activeInteraction) return;
         this.activeInteraction = null;
         this.updateSidebar();
-    }
-
-    openModal(index) {
-        this.editingFieldIndex = index;
-        const field = this.pendingFields[index];
-        const isGroup = this.selectedFields.length > 1;
-        
-        // Elemento visual para el aviso
-        let warning = document.getElementById('modalWarning');
-        if (!warning) {
-            warning = document.createElement('div');
-            warning.id = 'modalWarning';
-            warning.style.cssText = "color: #d93025; font-size: 12px; font-weight: bold; margin-bottom: 10px; display: none;";
-            warning.textContent = "⚠ Estás editando un grupo. Los cambios afectarán a todos los elementos seleccionados. El ID no se modificará.";
-            this.elements.editModal.querySelector('.modal-content').insertBefore(warning, this.elements.editModal.querySelector('.field-group'));
-        }
-        warning.style.display = isGroup ? 'block' : 'none';
-
-        this.elements.modalInputName.value = isGroup ? '' : field.name;
-        this.elements.modalInputName.disabled = isGroup;
-        this.elements.modalInputName.placeholder = isGroup ? 'Edición de ID deshabilitada en grupo' : '';
-        
-        if (field.type === 'text') {
-            this.elements.textOptions.style.display = 'block';
-            this.elements.modalFontSize.value = field.fontSize || 12;
-            this.elements.modalAutoFit.checked = !!field.autoFit;
-            this.elements.modalAlignment.value = field.alignment || 'left';
-        } else {
-            this.elements.textOptions.style.display = 'none';
-        }
-        
-        this.elements.editModal.style.display = 'flex';
-    }
-
-    closeModal() {
-        this.elements.editModal.style.display = 'none';
-    }
-
-    saveModalChanges() {
-        if (this.editingFieldIndex !== null) {
-            const fieldsToUpdate = this.selectedFields.includes(this.editingFieldIndex) 
-                ? this.selectedFields.map(idx => this.pendingFields[idx]) 
-                : [this.pendingFields[this.editingFieldIndex]];
-
-            fieldsToUpdate.forEach(field => {
-                const newName = this.elements.modalInputName.value.trim();
-                if (newName) field.name = newName;
-                
-                if (field.type === 'text') {
-                    field.fontSize = parseInt(this.elements.modalFontSize.value) || 12;
-                    field.autoFit = this.elements.modalAutoFit.checked;
-                    field.alignment = this.elements.modalAlignment.value;
-                }
-            });
-            
-            this.updateSidebar();
-            this.pdfDestJS.getPage(this.currentPage).then(page => this.drawOverlays(page));
-        }
-        this.closeModal();
     }
 
     startDrawing(e) {
@@ -459,51 +368,6 @@ class PDFEditor {
         if (this.currentPage < this.totalPages) {
             this.currentPage++;
             this.render();
-        }
-    }
-
-    async savePDF() {
-        try {
-            const bufferCopy = this.pdfDestBytes.slice(0);
-            const doc = await PDFLib.PDFDocument.load(bufferCopy);
-            const form = doc.getForm();
-            const pages = doc.getPages();
-            for (const f of this.pendingFields) {
-                const page = pages[f.page - 1];
-                if (f.type === 'text') {
-                    const field = form.createTextField(f.name);
-                    field.addToPage(page, { x: f.x, y: f.y, width: f.w, height: f.h });
-                    
-                    // Aplicar estilos si existen
-                    if (f.autoFit) {
-                        field.setFontSize(0); // 0 indica auto-ajuste en pdf-lib para campos de texto
-                    } else if (f.fontSize) {
-                        field.setFontSize(f.fontSize);
-                    }
-
-                    if (f.alignment) {
-                        const alignMap = {
-                            'left': PDFLib.TextAlignment.Left,
-                            'center': PDFLib.TextAlignment.Center,
-                            'right': PDFLib.TextAlignment.Right
-                        };
-                        field.setAlignment(alignMap[f.alignment] || PDFLib.TextAlignment.Left);
-                    }
-                } else {
-                    const field = form.createCheckBox(f.name);
-                    field.addToPage(page, { x: f.x, y: f.y, width: f.w, height: f.h });
-                }
-            }
-            const bytes = await doc.save();
-            const blob = new Blob([bytes], { type: 'application/pdf' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = "PDF_Editado_Completo.pdf";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } catch (err) {
-            alert("Error: " + err.message);
         }
     }
 }

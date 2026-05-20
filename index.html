@@ -82,6 +82,21 @@
     </div>
 </div>
 
+<!-- Modal de guardado -->
+<div id="saveModal" class="modal">
+    <div class="modal-content" style="width: 300px;">
+        <div class="modal-header">Guardar PDF</div>
+        <div class="field-group" style="margin-top: 10px;">
+            <label class="section-title">Nombre del archivo</label>
+            <input type="text" id="saveFileName" value="PDF_Editado.pdf" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div class="modal-footer" style="margin-top: 15px;">
+            <button class="btn btn-outline" onclick="document.getElementById('saveModal').style.display='none'">Cancelar</button>
+            <button class="btn" onclick="pdfEditor.performSave()">Guardar</button>
+        </div>
+    </div>
+</div>
+
 <div class="main-container">
     <div class="sidebar">
         <div id="sourceFieldsArea" style="display:none;">
@@ -142,7 +157,7 @@
     </div>
 </div>
 
-<script src="assets/js/logic.js"></script>
+<script type="module" src="assets/js/logic.js"></script>
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
